@@ -32,6 +32,13 @@ def decode_B_type(inst):
     imm = sign_extend(imm, 13)
     return funct3, rs1, rs2, imm
 
+def decode_S_type(inst):
+    rs1=(inst>>15)&0x1F
+    rs2=(inst>>20)&0x1F
+    imm=((inst>>25)<<5) | ((inst>>7)&0x1F)
+    imm=sign_extend(imm, 12)
+    return rs1, rs2, imm
+
 def execute_instruction(inst, registers, memory):
     """Decode and execute one instruction."""
     opcode = inst & 0x7F
@@ -81,6 +88,15 @@ def execute_instruction(inst, registers, memory):
                     pc_increment = imm
         else:
             print("Unsupported B-type instruction encountered.")
+    
+    elif opcode == 0x23:
+        rs1, rs2, imm = decode_S_type(inst)
+        if ((inst >> 12) & 0x7) == 2:
+            addr = (registers[rs1] + imm) & 0xFFFFFFFF
+            memory[addr] = registers[rs2]
+        else:
+            print("Unsupported S-type instruction encountered.")
+    
     elif opcode == 0x13 or opcode == 0x67 or opcode == 0x3:
         # I-type instructions
         rd, funct3, rs1, imm = decode_I_type(inst)
