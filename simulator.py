@@ -103,7 +103,7 @@ def execute_instruction(inst, registers, memory):
             print("Unsupported I-type instruction encountered.")
     elif opcode == 0x6F:  # J-type instructions (JAL)
       rd, imm = decode_J_type(inst)
-      registers[rd] = pc + 4  # Store return address
+      registers[rd] = (pc + 4) & 0xFFFFFFFF  # Store return address
       pc_increment = imm
     else:
         print("Unsupported opcode encountered.")
