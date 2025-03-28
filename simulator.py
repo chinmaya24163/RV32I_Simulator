@@ -33,10 +33,11 @@ def decode_B_type(inst):
     return funct3, rs1, rs2, imm
 def decode_J_type(inst):
     rd = (inst >> 7) & 0x1F
-    imm = (((inst >> 31) & 0x1) << 20) | (((inst >> 12) & 0xFF) << 12) | \
-          (((inst >> 20) & 0x1) << 11) | (((inst >> 21) & 0x3FF) << 1)
+    imm = (((inst >> 31) & 0x1) << 20) | (((inst >> 21) & 0x3FF) << 1) | \
+          (((inst >> 20) & 0x1) << 11) | (((inst >> 12) & 0xFF) << 12)
     imm = sign_extend(imm, 21)
     return rd, imm
+
 
 def execute_instruction(inst, registers, memory):
     """Decode and execute one instruction."""
@@ -102,9 +103,10 @@ def execute_instruction(inst, registers, memory):
         else:
             print("Unsupported I-type instruction encountered.")
     elif opcode == 0x6F:  # J-type instructions (JAL)
-      rd, imm = decode_J_type(inst)
-      registers[rd] = (pc + 4) & 0xFFFFFFFF  # Store return address
-      pc_increment = imm
+        rd, imm = decode_J_type(inst)
+        if rd != 0:  # If rd is not x0, store return address
+            registers[rd] = (pc + 4) & 0xFFFFFFFF
+        pc_increment = imm  # Jump to the new address
     else:
         print("Unsupported opcode encountered.")
 
