@@ -1,3 +1,5 @@
+import sys
+
 def to_binary32(val):
     """Convert an integer to a 32-bit binary string with a 0b prefix."""
     return "0b" + format(val & 0xFFFFFFFF, '032b')
@@ -23,6 +25,7 @@ def decode_R_type(inst):
     funct7 = (inst >> 25) & 0x7F
     return rd, funct3, rs1, rs2, funct7
 
+
 def decode_B_type(inst):
     funct3 = (inst >> 12) & 0x7
     rs1 = (inst >> 15) & 0x1F
@@ -31,10 +34,12 @@ def decode_B_type(inst):
           (((inst >> 25) & 0x3F) << 5) | (((inst >> 8) & 0xF) << 1)
     imm = sign_extend(imm, 13)
     return funct3, rs1, rs2, imm
+
 def decode_J_type(inst):
     rd = (inst >> 7) & 0x1F
     imm = (((inst >> 31) & 0x1) << 20) | (((inst >> 21) & 0x3FF) << 1) | \
           (((inst >> 20) & 0x1) << 11) | (((inst >> 12) & 0xFF) << 12)
+    # imm = imm << 2
     imm = sign_extend(imm, 21)
     return rd, imm
 
@@ -80,6 +85,10 @@ def execute_instruction(inst, registers, memory):
                 else:
                     pc_increment = imm
         elif funct3 == 1:  # bne
+            # print("---regs---")
+            # print(rs1, rs2)
+            # print(registers[rs1], registers[rs2])
+            # print("----------")
             if registers[rs1] != registers[rs2]:
                 if imm == 0:
                     halt = True
@@ -121,7 +130,9 @@ def execute_instruction(inst, registers, memory):
     elif opcode == 0x6F:  # J-type instructions (JAL)
         rd, imm = decode_J_type(inst)
         if rd != 0:  # If rd is not x0, store return address
-            registers[rd] = (pc + 4) & 0xFFFFFFFF
+            # registers[rd] = (pc + 4) & 0xFFFFFFFF
+            registers[rd] = (pc) & 0xFFFFFFFF
+        # print(imm)
         pc_increment = imm  # Jump to the new address
     else:
         print("Unsupported opcode encountered.")
@@ -135,14 +146,18 @@ def format_trace_line(pc, registers):
 
 def format_memory_dump(memory):
     lines = []
-    for addr in sorted(memory.keys()):
+    # for addr in sorted(memory.keys()):
+    #     lines.append(f"0x{addr:08X}:{to_binary32(memory[addr])}")
+    for addr in range(0x00010000, 0x00010080, 4):
         lines.append(f"0x{addr:08X}:{to_binary32(memory[addr])}")
     return lines
 
-print("Enter the input machine code file (e.g., simple_1.txt):")
-input_file = input().strip()
-print("Enter the output trace file (e.g., trace.txt):")
-output_file = input().strip()
+# print("Enter the input machine code file (e.g., simple_1.txt):")
+# input_file = input().strip()
+# print("Enter the output trace file (e.g., trace.txt):")
+# output_file = input().strip()
+input_file = sys.argv[1]
+output_file = sys.argv[2]
 
 with open(input_file, 'r') as fin:
     instructions = [line.strip() for line in fin if line.strip()]
@@ -165,8 +180,9 @@ while pc in instr_mem:
     pc_inc, halt = execute_instruction(inst_int, registers, data_mem)
     if halt:
         break
-    trace_lines.append(format_trace_line(pc, registers))
     pc += pc_inc
+    trace_lines.append(format_trace_line(pc-4, registers))
+    # pc += pc_inc
 pc -= pc_inc
 trace_lines.append(format_trace_line(pc, registers))
 
