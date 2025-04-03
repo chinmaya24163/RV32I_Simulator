@@ -51,7 +51,7 @@ def decode_S_type(inst):
     imm=sign_extend(imm, 12)
     return rs1, rs2, imm
 
-def execute_instruction(inst, registers, memory):
+def execute_instruction(inst, registers, memory, pc):
     """Decode and execute one instruction."""
     opcode = inst & 0x7F
     pc_increment = 4  # default increment
@@ -119,9 +119,10 @@ def execute_instruction(inst, registers, memory):
         if funct3 == 0 and opcode == 0x13:  # addi
             registers[rd] = (registers[rs1] + imm) & 0xFFFFFFFF
         elif funct3 == 0 and opcode == 0x67:  # jalr
-            temp = registers[rs1] + imm
-            registers[rd] = pc_increment
-            pc_increment = temp & 0xFFFFFFFE
+            t = pc
+            pc_increment = (registers[rs1] + imm) & (~0x1) 
+            pc_increment -= pc - 4
+            registers[rd] = t
         elif funct3 == 2 and opcode == 0x3:  # lw
             addr = (registers[rs1] + imm) & 0xFFFFFFFF
             registers[rd] = memory.get(addr, 0)
@@ -177,7 +178,7 @@ trace_lines = []
 while pc in instr_mem:
     inst_bin = instr_mem[pc]
     inst_int = int(inst_bin, 2)
-    pc_inc, halt = execute_instruction(inst_int, registers, data_mem)
+    pc_inc, halt = execute_instruction(inst_int, registers, data_mem, pc)
     if halt:
         break
     pc += pc_inc
